@@ -5,11 +5,8 @@ import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const runtime = "nodejs"; 
+export const dynamic = "force-dynamic"; 
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -51,7 +48,7 @@ export const POST = async (req: NextRequest) => {
         const metadata = item.price.product.metadata;
 
         return {
-          product: new mongoose.Types.ObjectId(String(metadata.productId)), // ✅ FIXED: Ensure string input
+          product: new mongoose.Types.ObjectId(String(metadata.productId)),
           color: metadata.color || "N/A",
           size: metadata.size || "N/A",
           quantity: item.quantity,
@@ -93,5 +90,3 @@ export const POST = async (req: NextRequest) => {
     return new NextResponse("❌ Failed to create the order", { status: 500 });
   }
 };
-
-export const dynamic = "force-dynamic";
