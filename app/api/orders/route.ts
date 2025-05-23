@@ -9,28 +9,28 @@ export const GET = async (req: NextRequest) => {
   try {
     await connectToDB();
 
-    const orders = await Order.find().sort({ createdAt: "desc" });
+    const orders = await Order.find().sort({ createdAt: "desc" }).lean();
 
     const clerkIds = [...new Set(orders.map(order => order.customerClerkId))];
 
-    const customers = await Customer.find({ clerkId: { $in: clerkIds } });
+    const customers = await Customer.find({ clerkId: { $in: clerkIds } }).lean();
 
     const customerMap = new Map(customers.map(c => [c.clerkId, c.name]));
 
     const orderDetails = orders.map((order) => {
       const customerName = customerMap.get(order.customerClerkId) || "Unknown";
       return {
-        _id: order._id,
+        _id: String(order._id),
         customer: customerName,
         products: order.products.length,
         totalAmount: order.totalAmount,
-        createdAt: format(order.createdAt, "MMM do, yyyy"),
+        createdAt: format(new Date(order.createdAt), "MMM do, yyyy"),
       };
     });
 
     return NextResponse.json(orderDetails, { status: 200 });
-  } catch (err) {
-    console.error("[orders_GET]", err);
+  } catch (err: any) {
+    console.error("[orders_GET]", err?.message || err);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 };
@@ -42,11 +42,11 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
 
     const {
-      customer,        
-      products,        
-      totalAmount,     
-      shippingAddress, 
-      shippingRate,    
+      customer,
+      products,
+      totalAmount,
+      shippingAddress,
+      shippingRate,
     } = body;
 
     if (
@@ -92,9 +92,12 @@ export const POST = async (req: NextRequest) => {
       createdAt: new Date(),
     });
 
-    return NextResponse.json(newOrder, { status: 201 });
-  } catch (err) {
-    console.error("[orders_POST]", err);
+    return NextResponse.json({
+      ...newOrder.toObject(),
+      _id: newOrder._id.toString(), 
+    }, { status: 201 });
+  } catch (err: any) {
+    console.error("[orders_POST]", err?.message || err);
     return new NextResponse("Failed to save order", { status: 500 });
   }
 };
