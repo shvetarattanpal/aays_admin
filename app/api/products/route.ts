@@ -4,6 +4,15 @@ import { connectToDB } from "@/lib/mongoDB";
 import { HydratedDocument, Types } from "mongoose";
 import Collection from "@/lib/models/Collection";
 
+const allowedOrigin = "https://aays-store.vercel.app";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": allowedOrigin,
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 export const POST = async (req: NextRequest) => {
   try {
     await connectToDB();
@@ -103,12 +112,6 @@ export const GET = async (req: NextRequest) => {
       }
     );
   }
-};
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 export const OPTIONS = async () =>
