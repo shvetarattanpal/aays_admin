@@ -10,18 +10,40 @@ export async function POST(req: Request) {
     const { ids } = await req.json();
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json([], { status: 200 });
+      return createCORSResponse(JSON.stringify([]), 200);
     }
 
     const objectIds = ids.map((id: string) => new mongoose.Types.ObjectId(id));
 
     const products = await Product.find({ _id: { $in: objectIds } });
 
-    return NextResponse.json(products, { status: 200 });
+    return createCORSResponse(JSON.stringify(products), 200);
   } catch (error) {
     console.error("[wishlist_products_POST]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return createCORSResponse("Internal Server Error", 500);
   }
+}
+
+function createCORSResponse(body: string, status = 200) {
+  return new NextResponse(body, {
+    status,
+    headers: {
+      "Access-Control-Allow-Origin": "https://aays-store.vercel.app",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "https://aays-store.vercel.app",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
 
 export const dynamic = "force-dynamic";
