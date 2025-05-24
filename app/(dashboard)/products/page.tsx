@@ -17,7 +17,9 @@ const Products = () => {
 
   const getProducts = async () => {
     try {
-      const res = await fetch("/api/products", { method: "GET" });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_ECOMMERCE_STORE_URL}/api/products`, {
+        method: "GET",
+      });
       if (!res.ok) {
         throw new Error(`API Error: ${res.status} - ${res.statusText}`);
       }
@@ -28,7 +30,7 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   useEffect(() => {
     getProducts();
