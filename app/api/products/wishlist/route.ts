@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectToDB } from "@/lib/mongoDB";
 import Product from "@/lib/models/Product";
+import mongoose from "mongoose";
 
 export async function POST(req: Request) {
   try {
@@ -12,7 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json([], { status: 200 });
     }
 
-    const products = await Product.find({ _id: { $in: ids } });
+    const objectIds = ids.map((id: string) => new mongoose.Types.ObjectId(id));
+
+    const products = await Product.find({ _id: { $in: objectIds } });
 
     return NextResponse.json(products, { status: 200 });
   } catch (error) {
