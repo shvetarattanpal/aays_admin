@@ -6,6 +6,7 @@ import { connectToDB } from "@/lib/mongoDB";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "https://aays-store.vercel.app",
+  'Access-Control-Allow-Credentials': 'true',
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
