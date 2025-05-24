@@ -8,6 +8,13 @@ export const POST = async (req: NextRequest) => {
   try {
     await connectToDB();
 
+    if (req.method === "OPTIONS") {
+      return new NextResponse(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
+    }
+
     const data = await req.json();
     console.log("Received Data:", data);
 
@@ -26,11 +33,14 @@ export const POST = async (req: NextRequest) => {
       expense,
     } = data;
 
-    console.log("Final data being submitted to DB:", {data});
+    console.log("Final data being submitted to DB:", { data });
 
     if (!subCategory) {
       console.error("❌ SubCategory is missing in request!");
-      return new NextResponse("SubCategory is required", { status: 400 });
+      return new NextResponse("SubCategory is required", {
+        status: 400,
+        headers: corsHeaders,
+      });
     }
 
     const newProduct: HydratedDocument<IProduct> = new Product({
@@ -49,10 +59,17 @@ export const POST = async (req: NextRequest) => {
     });
 
     await newProduct.save();
-    return NextResponse.json(newProduct, { status: 201 });
+
+    return new NextResponse(JSON.stringify(newProduct), {
+      status: 201,
+      headers: corsHeaders,
+    });
   } catch (error) {
     console.error("Error creating product:", error);
-    return new NextResponse("Server error", { status: 500 });
+    return new NextResponse("Server error", {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 };
 
@@ -72,11 +89,32 @@ export const GET = async (req: NextRequest) => {
       .sort({ createdAt: "desc" })
       .populate({ path: "collections", model: Collection });
 
-    return NextResponse.json(products, { status: 200 });
+    return new NextResponse(JSON.stringify(products), {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error) {
     console.error("[products_GET] Error:", error);
-    return NextResponse.json({ message: "Failed to fetch products" }, { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ message: "Failed to fetch products" }),
+      {
+        status: 500,
+        headers: corsHeaders,
+      }
+    );
   }
 };
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export const OPTIONS = async () =>
+  new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
 
 export const dynamic = "force-dynamic";
