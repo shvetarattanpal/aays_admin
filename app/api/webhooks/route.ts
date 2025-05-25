@@ -5,12 +5,19 @@ import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export const runtime = "nodejs"; 
 export const dynamic = "force-dynamic"; 
 
 export const POST = async (req: NextRequest) => {
   try {
-    const rawBody = await req.text();
+    const buf = await req.arrayBuffer();
+    const rawBody = Buffer.from(buf);
     const signature = req.headers.get("Stripe-Signature") as string;
 
     const event = stripe.webhooks.constructEvent(
