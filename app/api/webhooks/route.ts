@@ -84,9 +84,9 @@ export const POST = async (req: NextRequest) => {
       console.log("✅ Order and Customer saved to DB.");
     }
 
-    return new NextResponse("✅ Order created", { status: 200 });
+    return NextResponse.json({ message: "✅ Order created" }, { status: 200 });
   } catch (err) {
     console.error("❌ Webhook Error:", err);
-    return new NextResponse("❌ Failed to create the order", { status: 500 });
+    return NextResponse.json({ error: "❌ Failed to create the order" }, { status: 500 });
   }
 };
