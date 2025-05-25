@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const POST = async (req: NextRequest) => {
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get("Stripe-Signature") as string;
+    const signature = req.headers.get("stripe-signature") as string;
 
     const event = stripe.webhooks.constructEvent(
       rawBody,
