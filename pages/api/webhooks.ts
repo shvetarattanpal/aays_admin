@@ -4,10 +4,11 @@ import { connectToDB } from "@/lib/mongoDB";
 import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
+import getRawBody from "raw-body";
 
 export const config = {
   api: {
-    bodyParser: false,
+    bodyParser: false, 
   },
 };
 
@@ -17,12 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const buffers: Uint8Array[] = [];
-    for await (const chunk of req) {
-      buffers.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
-    }
-    const rawBody = Buffer.concat(buffers).toString("utf-8");
-
+    const rawBody = await getRawBody(req);
     const signature = req.headers["stripe-signature"] as string;
 
     const event = stripe.webhooks.constructEvent(
@@ -57,6 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ) {
         console.error("❌ Missing required shipping address fields");
         return res.status(400).send("Missing required shipping address fields");
+      }
+
+      if (shipping.country !== "CA") {
+        console.error("❌ Invalid shipping country:", shipping.country);
+        return res.status(400).send("Shipping country must be Canada");
       }
 
       const shippingAddress = {
@@ -110,8 +111,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(200).send("✅ Order created");
-  } catch (err) {
-    console.error("❌ Webhook Error:", err);
-    return res.status(500).send("❌ Failed to create the order");
+  } catch (err: any) {
+    console.error("❌ Webhook Error:", err.message);
+    return res.status(500).send(`❌ Webhook error: ${err.message}`);
   }
 }
