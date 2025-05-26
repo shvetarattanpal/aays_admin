@@ -18,7 +18,7 @@ export default function UpdateOrderPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const queryOrderId = searchParams.get('orderId');
+  const queryOrderId = searchParams?.get('orderId') ?? '';
 
   useEffect(() => {
     if (queryOrderId) {
