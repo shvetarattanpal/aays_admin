@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       payment_method_types: ["card"],
       mode: "payment",
       shipping_address_collection: {
-        allowed_countries: ["CA"],
+        allowed_countries: ["CA", "US"],
       },
       shipping_options: [
         { shipping_rate: "shr_1QuwDzQ6h5sG4cWCo6Lguasw" },
