@@ -8,26 +8,23 @@ import mongoose from "mongoose";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+async function bufferBody(stream: ReadableStream<Uint8Array> | null): Promise<Buffer> {
+  if (!stream) return Buffer.from("");
+  const reader = stream.getReader();
+  const chunks = [];
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+}
+
 export const POST = async (req: NextRequest) => {
   try {
-    const chunks = [];
-    const reader = req.body?.getReader();
-
-    if (!reader) {
-      throw new Error("Unable to read request body");
-    }
-
-    let done = false;
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      if (value) {
-        chunks.push(value);
-      }
-      done = doneReading;
-    }
-
-    const rawBody = Buffer.concat(chunks).toString("utf8");
-
+    const rawBody = await bufferBody(req.body);
     const signature = req.headers.get("stripe-signature") as string;
 
     const event = stripe.webhooks.constructEvent(
