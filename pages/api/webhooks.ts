@@ -46,12 +46,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: session?.customer_details?.email,
       };
 
+      const shipping = session?.shipping_details?.address;
+
+      if (
+        !shipping?.line1 ||
+        !shipping?.city ||
+        !shipping?.state ||
+        !shipping?.postal_code ||
+        !shipping?.country
+      ) {
+        console.error("❌ Missing required shipping address fields");
+        return res.status(400).send("Missing required shipping address fields");
+      }
+
       const shippingAddress = {
-        street: session?.shipping_details?.address?.line1 || "",
-        city: session?.shipping_details?.address?.city || "",
-        state: session?.shipping_details?.address?.state || "",
-        postalCode: session?.shipping_details?.address?.postal_code || "",
-        country: session?.shipping_details?.address?.country || "",
+        street: shipping.line1,
+        city: shipping.city,
+        state: shipping.state,
+        postalCode: shipping.postal_code,
+        country: shipping.country,
       };
 
       const lineItems = fullSession.line_items?.data || [];
