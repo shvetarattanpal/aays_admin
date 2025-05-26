@@ -1,50 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { stripe } from "@/lib/stripe";
 import { connectToDB } from "@/lib/mongoDB";
 import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
-import { headers } from "next/headers";
-import Stripe from "stripe";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-async function bufferBody(
-  stream: ReadableStream<Uint8Array> | null
-): Promise<Buffer> {
-  if (!stream) return Buffer.from("");
-  const reader = stream.getReader();
-  const chunks = [];
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) chunks.push(value);
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).send("Method Not Allowed");
   }
 
-  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
-}
-
-export const POST = async (req: NextRequest) => {
   try {
-    const rawBody = await req.arrayBuffer();
-    const body = Buffer.from(rawBody);
-
-    const signature = headers().get("stripe-signature") as string;
-
-    let event: Stripe.Event;
-
-    try {
-      event = stripe.webhooks.constructEvent(
-        body,
-        signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
-      );
-    } catch (err: any) {
-      console.error("❌ Stripe Webhook Error:", err.message);
-      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    const buffers: Uint8Array[] = [];
+    for await (const chunk of req) {
+      buffers.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
+    const rawBody = Buffer.concat(buffers).toString("utf-8");
+
+    const signature = req.headers["stripe-signature"] as string;
+
+    const event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
 
     await connectToDB();
 
@@ -61,28 +46,12 @@ export const POST = async (req: NextRequest) => {
         email: session?.customer_details?.email,
       };
 
-      const address = session?.shipping_details?.address;
-
-      if (
-        !address?.line1 ||
-        !address?.city ||
-        !address?.state ||
-        !address?.postal_code ||
-        !address?.country
-      ) {
-        console.error("❌ Incomplete shipping address:", address);
-        return NextResponse.json(
-          { error: "Incomplete shipping address received from Stripe" },
-          { status: 400 }
-        );
-      }
-
       const shippingAddress = {
-        street: address.line1,
-        city: address.city,
-        state: address.state,
-        postalCode: address.postal_code,
-        country: address.country,
+        street: session?.shipping_details?.address?.line1 || "",
+        city: session?.shipping_details?.address?.city || "",
+        state: session?.shipping_details?.address?.state || "",
+        postalCode: session?.shipping_details?.address?.postal_code || "",
+        country: session?.shipping_details?.address?.country || "",
       };
 
       const lineItems = fullSession.line_items?.data || [];
@@ -127,12 +96,9 @@ export const POST = async (req: NextRequest) => {
       console.log("✅ Order and Customer saved to DB.");
     }
 
-    return NextResponse.json({ message: "✅ Order created" }, { status: 200 });
+    return res.status(200).send("✅ Order created");
   } catch (err) {
     console.error("❌ Webhook Error:", err);
-    return NextResponse.json(
-      { error: "❌ Failed to create the order" },
-      { status: 500 }
-    );
+    return res.status(500).send("❌ Failed to create the order");
   }
-};
+}
