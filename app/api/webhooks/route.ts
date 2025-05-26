@@ -5,8 +5,8 @@ import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
 
-export const runtime = "nodejs"; 
-export const dynamic = "force-dynamic"; 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -34,12 +34,29 @@ export const POST = async (req: NextRequest) => {
         email: session?.customer_details?.email,
       };
 
+      const address = session?.shipping_details?.address;
+
+      if (
+        !address ||
+        !address.line1 ||
+        !address.city ||
+        !address.state ||
+        !address.postal_code ||
+        !address.country
+      ) {
+        console.error("❌ Missing address fields in Stripe session");
+        return NextResponse.json(
+          { error: "Missing required shipping address fields" },
+          { status: 400 }
+        );
+      }
+
       const shippingAddress = {
-        street: session?.shipping_details?.address?.line1 || "",
-        city: session?.shipping_details?.address?.city || "",
-        state: session?.shipping_details?.address?.state || "",
-        postalCode: session?.shipping_details?.address?.postal_code || "",
-        country: session?.shipping_details?.address?.country || "",
+        street: address.line1,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postal_code,
+        country: address.country,
       };
 
       const lineItems = fullSession.line_items?.data || [];
