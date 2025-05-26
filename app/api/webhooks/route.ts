@@ -4,11 +4,15 @@ import { connectToDB } from "@/lib/mongoDB";
 import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
+import { headers } from "next/headers";
+import Stripe from "stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function bufferBody(stream: ReadableStream<Uint8Array> | null): Promise<Buffer> {
+async function bufferBody(
+  stream: ReadableStream<Uint8Array> | null
+): Promise<Buffer> {
   if (!stream) return Buffer.from("");
   const reader = stream.getReader();
   const chunks = [];
@@ -24,14 +28,23 @@ async function bufferBody(stream: ReadableStream<Uint8Array> | null): Promise<Bu
 
 export const POST = async (req: NextRequest) => {
   try {
-    const rawBody = await bufferBody(req.body);
-    const signature = req.headers.get("stripe-signature") as string;
+    const rawBody = await req.arrayBuffer(); // get raw body
+    const body = Buffer.from(rawBody); // convert to Buffer for Stripe
 
-    const event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const signature = headers().get("stripe-signature") as string;
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET!
+      );
+    } catch (err: any) {
+      console.error("❌ Stripe Webhook Error:", err.message);
+      return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    }
 
     await connectToDB();
 
@@ -103,6 +116,9 @@ export const POST = async (req: NextRequest) => {
     return NextResponse.json({ message: "✅ Order created" }, { status: 200 });
   } catch (err) {
     console.error("❌ Webhook Error:", err);
-    return NextResponse.json({ error: "❌ Failed to create the order" }, { status: 500 });
+    return NextResponse.json(
+      { error: "❌ Failed to create the order" },
+      { status: 500 }
+    );
   }
 };
