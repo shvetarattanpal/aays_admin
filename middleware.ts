@@ -1,6 +1,4 @@
 import { authMiddleware } from "@clerk/nextjs";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 export default authMiddleware({
   publicRoutes: [
@@ -33,18 +31,7 @@ export default authMiddleware({
     "/api/collections/:collectionId",
     "/api/contact",
     "/unauthorized",
-  ],
-  afterAuth(auth, req) {
-    const { pathname } = req.nextUrl;
-
-    if (pathname === "/api/webhooks") {
-      const res = NextResponse.next();
-      res.headers.set("x-stripe-webhook-raw", "true");
-      return res;
-    }
-
-    return NextResponse.next();
-  },
+  ], 
 });
 
 export const config = {
@@ -52,5 +39,5 @@ export const config = {
     "/((?!.+\\.[\\w]+$|_next).*)", 
     "/", 
     "/(api|trpc)(.*)", 
-  ],
+  ], 
 };
