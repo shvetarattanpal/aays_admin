@@ -34,29 +34,14 @@ export const POST = async (req: NextRequest) => {
         email: session?.customer_details?.email,
       };
 
-      const address = session?.shipping_details?.address;
-
-      if (
-        !address ||
-        !address.line1 ||
-        !address.city ||
-        !address.state ||
-        !address.postal_code ||
-        !address.country
-      ) {
-        console.error("❌ Missing address fields in Stripe session");
-        return NextResponse.json(
-          { error: "Missing required shipping address fields" },
-          { status: 400 }
-        );
-      }
+      const address = session?.shipping_details?.address || {};
 
       const shippingAddress = {
-        street: address.line1,
-        city: address.city,
-        state: address.state,
-        postalCode: address.postal_code,
-        country: address.country,
+        street: address.line1 || "",
+        city: address.city || "",
+        state: address.state || "",
+        postalCode: address.postal_code || "",
+        country: address.country || "",
       };
 
       const lineItems = fullSession.line_items?.data || [];
