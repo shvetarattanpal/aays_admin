@@ -10,7 +10,24 @@ export const dynamic = "force-dynamic";
 
 export const POST = async (req: NextRequest) => {
   try {
-    const rawBody = await req.text();
+    const chunks = [];
+    const reader = req.body?.getReader();
+
+    if (!reader) {
+      throw new Error("Unable to read request body");
+    }
+
+    let done = false;
+    while (!done) {
+      const { value, done: doneReading } = await reader.read();
+      if (value) {
+        chunks.push(value);
+      }
+      done = doneReading;
+    }
+
+    const rawBody = Buffer.concat(chunks).toString("utf8");
+
     const signature = req.headers.get("stripe-signature") as string;
 
     const event = stripe.webhooks.constructEvent(
