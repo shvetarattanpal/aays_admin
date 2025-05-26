@@ -28,8 +28,8 @@ async function bufferBody(
 
 export const POST = async (req: NextRequest) => {
   try {
-    const rawBody = await req.arrayBuffer(); // get raw body
-    const body = Buffer.from(rawBody); // convert to Buffer for Stripe
+    const rawBody = await req.arrayBuffer();
+    const body = Buffer.from(rawBody);
 
     const signature = headers().get("stripe-signature") as string;
 
@@ -61,14 +61,28 @@ export const POST = async (req: NextRequest) => {
         email: session?.customer_details?.email,
       };
 
-      const address = session?.shipping_details?.address || {};
+      const address = session?.shipping_details?.address;
+
+      if (
+        !address?.line1 ||
+        !address?.city ||
+        !address?.state ||
+        !address?.postal_code ||
+        !address?.country
+      ) {
+        console.error("❌ Incomplete shipping address:", address);
+        return NextResponse.json(
+          { error: "Incomplete shipping address received from Stripe" },
+          { status: 400 }
+        );
+      }
 
       const shippingAddress = {
-        street: address.line1 || "",
-        city: address.city || "",
-        state: address.state || "",
-        postalCode: address.postal_code || "",
-        country: address.country || "",
+        street: address.line1,
+        city: address.city,
+        state: address.state,
+        postalCode: address.postal_code,
+        country: address.country,
       };
 
       const lineItems = fullSession.line_items?.data || [];
