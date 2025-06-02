@@ -42,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: session?.customer_details?.email,
       };
 
-      const shipping = session?.shipping_details?.address;
+      const shipping = session?.shipping?.address;
 
       if (
         !shipping?.line1 ||
