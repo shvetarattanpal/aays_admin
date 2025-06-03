@@ -5,14 +5,26 @@ import Order from "@/lib/models/Order";
 import Customer from "@/lib/models/Customer";
 import mongoose from "mongoose";
 import getRawBody from "raw-body";
+import type Stripe from "stripe";
+
+type ExpandedCheckoutSession = Stripe.Checkout.Session & {
+  shipping?: {
+    address: Stripe.Address;
+    name: string | null;
+    phone: string | null;
+  };
+};
 
 export const config = {
   api: {
-    bodyParser: false, 
+    bodyParser: false,
   },
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== "POST") {
     return res.status(405).send("Method Not Allowed");
   }
@@ -32,9 +44,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as any;
 
-      const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-        expand: ["line_items.data.price.product"],
-      });
+      const fullSession = (await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ["line_items.data.price.product", "shipping"],
+      })) as ExpandedCheckoutSession;
+
+      console.log(
+        "📄 Full checkout session:",
+        JSON.stringify(fullSession, null, 2)
+      );
+      console.log(
+        "📦 Shipping address from fullSession:",
+        fullSession.shipping?.address
+      );
 
       const customerInfo = {
         clerkId: session?.client_reference_id,
@@ -42,7 +63,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: session?.customer_details?.email,
       };
 
-      const shipping = session?.shipping?.address;
+      const shipping = fullSession.shipping?.address;
+
+      console.log("📦 Shipping address from session:", shipping);
 
       if (
         !shipping?.line1 ||
@@ -51,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         !shipping?.postal_code ||
         !shipping?.country
       ) {
-        console.error("❌ Missing required shipping address fields");
+        console.error("❌ Missing required shipping address fields", shipping);
         return res.status(400).send("Missing required shipping address fields");
       }
 

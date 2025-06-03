@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.ECOMMERCE_STORE_URL}/cart`,
     });
 
+    console.log("🧾 Stripe session created:", session);
+
     return NextResponse.json({ url: session.url }, { headers: corsHeaders });
   } catch (err) {
     console.error("[checkout_POST]", err);
