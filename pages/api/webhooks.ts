@@ -8,7 +8,7 @@ import getRawBody from "raw-body";
 import type Stripe from "stripe";
 
 type ExpandedCheckoutSession = Stripe.Checkout.Session & {
-  shipping?: {
+  shipping_details?: {
     address: Stripe.Address;
     name: string | null;
     phone: string | null;
@@ -45,17 +45,11 @@ export default async function handler(
       const session = event.data.object as any;
 
       const fullSession = (await stripe.checkout.sessions.retrieve(session.id, {
-        expand: ["line_items.data.price.product", "shipping"],
+        expand: ["line_items.data.price.product"],
       })) as ExpandedCheckoutSession;
 
-      console.log(
-        "📄 Full checkout session:",
-        JSON.stringify(fullSession, null, 2)
-      );
-      console.log(
-        "📦 Shipping address from fullSession:",
-        fullSession.shipping?.address
-      );
+      console.log("📄 Full checkout session:", JSON.stringify(fullSession, null, 2));
+      console.log("📦 Shipping address from fullSession:", fullSession.shipping_details?.address);
 
       const customerInfo = {
         clerkId: session?.client_reference_id,
@@ -63,7 +57,7 @@ export default async function handler(
         email: session?.customer_details?.email,
       };
 
-      const shipping = fullSession.shipping?.address;
+      const shipping = fullSession.shipping_details?.address;
 
       console.log("📦 Shipping address from session:", shipping);
 
