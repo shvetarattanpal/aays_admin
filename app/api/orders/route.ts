@@ -11,31 +11,49 @@ export const GET = async (req: NextRequest) => {
 
     const orders = await Order.find().sort({ createdAt: "desc" }).lean();
 
-    const clerkIds = [...new Set(orders.map(order => order.customerClerkId))];
+    const clerkIds = [...new Set(
+      orders.map(order => order.customerClerkId).filter(Boolean)
+    )];
 
-    const customers = await Customer.find({ clerkId: { $in: clerkIds } }).lean();
+    const customers = clerkIds.length > 0
+      ? await Customer.find({ clerkId: { $in: clerkIds } }).lean()
+      : [];
 
-    const customerMap = new Map(customers.map(c => [c.clerkId, c.name]));
+    const customerMap = new Map(
+      customers.map(c => [c.clerkId, c.name || "Unknown"])
+    );
 
     const orderDetails = orders.map((order) => {
       const customerName = customerMap.get(order.customerClerkId) || "Unknown";
 
+      let createdAtFormatted = "N/A";
+      try {
+        const date = new Date(order.createdAt);
+        if (!isNaN(date.getTime())) {
+          createdAtFormatted = format(date, "MMM do, yyyy");
+        }
+      } catch {
+        createdAtFormatted = "N/A";
+      }
+
       return {
         _id: String(order._id),
         customer: customerName,
-        products: order.products?.length ?? 0,
+        products: Array.isArray(order.products) ? order.products.length : 0,
         totalAmount: order.totalAmount,
-        createdAt: order.createdAt
-          ? format(new Date(order.createdAt), "MMM do, yyyy")
-          : "N/A",
+        createdAt: createdAtFormatted,
       };
     });
 
     return NextResponse.json(orderDetails, { status: 200 });
+
   } catch (err: any) {
     console.error("[orders_GET]", err?.message || err);
     return NextResponse.json(
-      { error: "Internal Server Error", details: err?.message || err },
+      {
+        error: "Internal Server Error",
+        details: err?.message || String(err),
+      },
       { status: 500 }
     );
   }
