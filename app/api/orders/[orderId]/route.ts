@@ -3,6 +3,7 @@ import Order from "@/lib/models/Order";
 import Product from "@/lib/models/Product";
 import { connectToDB } from "@/lib/mongoDB";
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export const GET = async (
   req: NextRequest,
@@ -10,6 +11,10 @@ export const GET = async (
 ) => {
   try {
     await connectToDB();
+
+    if (!mongoose.Types.ObjectId.isValid(params.orderId)) {
+      return NextResponse.json({ message: "Invalid Order ID" }, { status: 400 });
+    }
 
     const orderDetails = await Order.findById(params.orderId).populate({
       path: "products.product",
@@ -25,8 +30,10 @@ export const GET = async (
     });
 
     return NextResponse.json({ orderDetails, customer }, { status: 200 });
+
   } catch (err) {
     console.error("[orderId_GET]", err);
+
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }
