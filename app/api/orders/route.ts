@@ -19,19 +19,25 @@ export const GET = async (req: NextRequest) => {
 
     const orderDetails = orders.map((order) => {
       const customerName = customerMap.get(order.customerClerkId) || "Unknown";
+
       return {
         _id: String(order._id),
         customer: customerName,
-        products: order.products.length,
+        products: order.products?.length ?? 0,
         totalAmount: order.totalAmount,
-        createdAt: format(new Date(order.createdAt), "MMM do, yyyy"),
+        createdAt: order.createdAt
+          ? format(new Date(order.createdAt), "MMM do, yyyy")
+          : "N/A",
       };
     });
 
     return NextResponse.json(orderDetails, { status: 200 });
   } catch (err: any) {
     console.error("[orders_GET]", err?.message || err);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", details: err?.message || err },
+      { status: 500 }
+    );
   }
 };
 
